@@ -1,0 +1,19 @@
+# tfsec configuration
+# Docs: https://aquasecurity.github.io/tfsec/
+
+severity_overrides:
+  AZU002: LOW       # Example: storage account allows HTTP
+  AZU003: MEDIUM    # Example: key vault firewall too open
+
+exclude:
+  - aws
+  - gcp
+  - digitalocean
+
+# Fail build on HIGH or CRITICAL by default. Use --soft-fail in CI initially.
+minimum_severity: MEDIUM
+
+# Custom naming exceptions if needed
+# custom_checks:
+#   - code: CUSTOM001
+#     description: "Example custom check"
