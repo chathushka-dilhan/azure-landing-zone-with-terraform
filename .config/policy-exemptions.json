@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/json",
+  "exemptions": [
+    {
+      "displayName": "Temporary exemption for legacy hub IP schema",
+      "policyAssignmentId": "/providers/Microsoft.Management/managementGroups/contoso-platform/providers/Microsoft.Authorization/policyAssignments/afw-ip-ranges",
+      "exemptionCategory": "Waiver",
+      "expiresOn": "2025-12-31T23:59:59Z",
+      "metadata": {
+        "requestedBy": "network-team",
+        "justification": "Migration in-flight, new ranges planned for Q4"
+      }
+    }
+  ]
+}

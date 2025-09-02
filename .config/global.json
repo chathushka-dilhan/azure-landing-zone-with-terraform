@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json.schemastore.org/json",
+  "organization": {
+    "name": "contoso",
+    "contactEmail": "platform-team@contoso.com"
+  },
+  "locations": {
+    "primary": "southeastasia",
+    "secondary": "eastasia",
+    "paired": ["southeastasia", "eastasia"]
+  },
+  "naming": {
+    "separator": "-",
+    "prefix": "alz",
+    "resourceGroup": "{prefix}-{area}-{env}-rg",
+    "workspace": "{prefix}-{area}-{env}-law",
+    "vnet": "{prefix}-{area}-{env}-vnet",
+    "subnet": "{prefix}-{area}-{env}-{name}-snet",
+    "keyVault": "{prefix}-{area}-{env}-kv",
+    "firewall": "{prefix}-{area}-{env}-afw",
+    "bastion": "{prefix}-{area}-{env}-bas",
+    "actionGroup": "{prefix}-{area}-{env}-ag",
+    "recoveryVault": "{prefix}-{area}-{env}-rsv",
+    "mi": "{prefix}-{area}-{env}-{name}-uami"
+  },
+  "tags": {
+    "costCenter": "0000",
+    "owner": "platform",
+    "env": "dev",
+    "criticality": "platform",
+    "managedBy": "iac-bicep"
+  },
+  "rbac": {
+    "roles": {
+      "owner": "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+      "contributor": "b24988ac-6180-42a0-ab88-20f7382dd24c",
+      "reader": "acdd72a7-3385-48ef-bd42-f606fba81ae7",
+      "userAccessAdmin": "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9"
+    }
+  },
+  "monitoring": {
+    "defaultLogs": [
+      "Administrative",
+      "Security",
+      "ServiceHealth",
+      "Alert",
+      "Recommendation",
+      "Policy",
+      "Autoscale",
+      "ResourceHealth"
+    ],
+    "defaultMetrics": ["AllMetrics"]
+  },
+  "defenderPlans": {
+    "VirtualMachines": "Standard",
+    "AppServices": "Standard",
+    "SqlServers": "Standard",
+    "SqlServerVirtualMachines": "Standard",
+    "StorageAccounts": "Standard",
+    "KubernetesService": "Standard",
+    "ContainerRegistry": "Standard",
+    "KeyVaults": "Standard",
+    "Dns": "Standard",
+    "Arm": "Standard",
+    "OpenSourceRelationalDatabases": "Standard"
+  }
+}
