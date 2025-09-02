@@ -1,0 +1,162 @@
+# Reusable Terraform steps for Azure DevOps
+# Usage:
+# - template: templates/terraform-steps.yml
+#   parameters:
+#     workingDirectory: terraform/platform/00-tenant
+#     varFile: environments/dev/platform.tfvars
+#     planName: 00-tenant-dev
+#     environment: alz-dev
+#     azServiceConnection: 'AzureSPN-Katta'
+#     apply: true
+
+parameters:
+  workingDirectory: ''
+  varFile: ''
+  planName: 'tfplan'
+  environment: ''
+  azServiceConnection: ''
+  apply: false
+  additionalInitBackendConfig: {}     # map of extra -backend-config key=val
+  extraVars: {}                       # map of -var key=val (stringified)
+
+steps:
+  - checkout: self
+    persistCredentials: true
+    clean: true
+
+  # Install Terraform
+  - task: Bash@3
+    displayName: 'Install Terraform'
+    inputs:
+      targetType: inline
+      script: |
+        set -e
+        sudo apt-get update -y
+        sudo apt-get install -y gnupg software-properties-common curl
+        curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+        sudo apt-get update -y && sudo apt-get install -y terraform
+        terraform -version
+
+  # Cache .terraform and plugin dir for faster runs
+  - task: Cache@2
+    displayName: 'Cache .terraform plugin dir'
+    inputs:
+      key: 'terraform | $(Agent.OS) | ${{ parameters.workingDirectory }} | "$(Build.SourceVersion)"'
+      path: '${{ parameters.workingDirectory }}/.terraform'
+      restoreKeys: |
+        terraform | $(Agent.OS) | ${{ parameters.workingDirectory }}
+        terraform | $(Agent.OS)
+
+  # Azure login with Service Connection
+  - task: AzureCLI@2
+    displayName: 'Azure CLI login'
+    inputs:
+      azureSubscription: '${{ parameters.azServiceConnection }}'
+      scriptType: bash
+      scriptLocation: inlineScript
+      addSpnToEnvironment: true
+      inlineScript: |
+        set -e
+        echo "Logged into Azure. Sub: $AZURE_SUBSCRIPTION_ID Tenant: $tenantId SPN: $servicePrincipalId"
+        # Export env for Terraform azurerm provider
+        echo "##vso[task.setvariable variable=ARM_CLIENT_ID;issecret=false]$servicePrincipalId"
+        echo "##vso[task.setvariable variable=ARM_CLIENT_SECRET;issecret=true]$servicePrincipalKey"
+        echo "##vso[task.setvariable variable=ARM_TENANT_ID;issecret=false]$tenantId"
+        echo "##vso[task.setvariable variable=ARM_SUBSCRIPTION_ID;issecret=false]$AZURE_SUBSCRIPTION_ID"
+
+  - task: Bash@3
+    displayName: 'Terraform Init'
+    workingDirectory: ${{ parameters.workingDirectory }}
+    env:
+      ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+      ARM_TENANT_ID: $(ARM_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+    inputs:
+      targetType: inline
+      script: |
+        set -e
+        INIT_FLAGS=""
+        # extra backend config
+        if [ "${{ length(parameters.additionalInitBackendConfig) }}" != "0" ]; then
+          echo "Applying additional backend config..."
+          while IFS="=" read -r k v; do
+            [ -z "$k" ] && continue
+            INIT_FLAGS="$INIT_FLAGS -backend-config=\"$k=$v\""
+          done < <(python3 - <<'PY'
+import json, os
+cfg=json.loads('''${{ convertToJson(parameters.additionalInitBackendConfig) }}''')
+print("\n".join([f"{k}={v}" for k,v in cfg.items()]))
+PY
+)
+        fi
+        echo "Running terraform init $INIT_FLAGS"
+        eval terraform init -input=false $INIT_FLAGS
+
+  - task: Bash@3
+    displayName: 'Terraform Validate'
+    workingDirectory: ${{ parameters.workingDirectory }}
+    inputs:
+      targetType: inline
+      script: |
+        set -e
+        terraform validate
+
+  - task: Bash@3
+    displayName: 'Terraform Plan'
+    workingDirectory: ${{ parameters.workingDirectory }}
+    env:
+      ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+      ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+      ARM_TENANT_ID: $(ARM_TENANT_ID)
+      ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+    inputs:
+      targetType: inline
+    condition: succeeded()
+    script: |
+      set -e
+      VAR_ARGS=""
+      # Add -var-file if present
+      if [ -n "${{ parameters.varFile }}" ]; then
+        VAR_ARGS="$VAR_ARGS -var-file=${{ parameters.varFile }}"
+      fi
+      # Extra vars map to -var 'k=v'
+      if [ "${{ length(parameters.extraVars) }}" != "0" ]; then
+        while IFS="=" read -r k v; do
+          [ -z "$k" ] && continue
+          VAR_ARGS="$VAR_ARGS -var \"$k=$v\""
+        done < <(python3 - <<'PY'
+import json
+m=json.loads('''${{ convertToJson(parameters.extraVars) }}''')
+print("\n".join([f"{k}={v}" for k,v in m.items()]))
+PY
+)
+      fi
+      echo "Plan args: $VAR_ARGS"
+      terraform plan -out=$(Build.ArtifactStagingDirectory)/${{ parameters.planName }}.plan -input=false $VAR_ARGS
+      terraform show -no-color $(Build.ArtifactStagingDirectory)/${{ parameters.planName }}.plan > $(Build.ArtifactStagingDirectory)/${{ parameters.planName }}.txt
+      echo "##vso[task.uploadfile]$(Build.ArtifactStagingDirectory)/${{ parameters.planName }}.txt"
+
+  - publish: '$(Build.ArtifactStagingDirectory)'
+    displayName: 'Publish plan artifact'
+    condition: succeeded()
+    artifact: terraform-plan
+
+  # Apply behind an environment approval if requested
+  - ${{ if eq(parameters.apply, true) }}:
+    - task: Bash@3
+      displayName: 'Terraform Apply'
+      workingDirectory: ${{ parameters.workingDirectory }}
+      env:
+        ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+        ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+        ARM_TENANT_ID: $(ARM_TENANT_ID)
+        ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+      inputs:
+        targetType: inline
+        script: |
+          set -e
+          terraform apply -input=false "$(Pipeline.Workspace)/terraform-plan/${{ parameters.planName }}.plan"
+      # Environment gates control approval
+      environment: ${{ parameters.environment }}

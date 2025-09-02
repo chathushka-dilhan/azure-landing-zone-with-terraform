@@ -1,0 +1,13 @@
+# Repo-wide validation and linting on PRs and pushes to main.
+
+trigger:
+  branches:
+    include: [ main ]
+pr:
+  branches:
+    include: [ main, feature/* ]
+
+stages:
+  - template: templates/quality-gates.yml
+    parameters:
+      azServiceConnection: ''   # not required for lint

@@ -1,0 +1,27 @@
+# Deploy Sentinel, Defender plans, and Platform Key Vault
+
+trigger: none
+pr: none
+
+variables:
+  AZ_SERVICE_CONNECTION: 'AzureSPN-Katta'
+  ENVIRONMENT_NAME: 'alz-dev'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Security
+    displayName: '50-security'
+    jobs:
+      - job: DeploySecurity
+        displayName: 'Deploy security services'
+        steps:
+          - template: templates/terraform-steps.yml
+            parameters:
+              workingDirectory: terraform/platform/50-security
+              varFile: environments/dev/security.tfvars
+              planName: 50-security-dev
+              environment: $(ENVIRONMENT_NAME)
+              azServiceConnection: $(AZ_SERVICE_CONNECTION)
+              apply: true

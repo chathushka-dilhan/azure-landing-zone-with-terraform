@@ -1,0 +1,48 @@
+# Runs repo-wide quality gates: fmt, validate, tflint, tfsec, plus our standards script.
+
+parameters:
+  azServiceConnection: ''
+  paths: |
+    terraform/**/*
+    scripts/**/*
+    pipelines/**/*
+    environments/**/*
+
+stages:
+  - stage: Quality
+    displayName: 'Quality Gates'
+    jobs:
+      - job: LintValidate
+        displayName: 'Terraform fmt/validate + linters'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+            clean: true
+
+          - task: Bash@3
+            displayName: 'Install Terraform, tflint, tfsec'
+            inputs:
+              targetType: inline
+              script: |
+                set -e
+                sudo apt-get update -y
+                sudo apt-get install -y gnupg software-properties-common curl unzip
+                # Terraform
+                curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+                echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+                sudo apt-get update -y && sudo apt-get install -y terraform
+                # tflint
+                curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+                sudo mv tflint /usr/local/bin/tflint
+                # tfsec
+                curl -sSL https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64 -o tfsec
+                chmod +x tfsec && sudo mv tfsec /usr/local/bin/tfsec
+
+          - task: PowerShell@2
+            displayName: 'Run standards script'
+            inputs:
+              pwsh: true
+              targetType: filePath
+              filePath: scripts/enforce-standards.ps1
+              arguments: ''

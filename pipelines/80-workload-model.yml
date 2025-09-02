@@ -1,0 +1,56 @@
+# Render workload models to *.auto.tfvars.json and apply target stacks that read them.
+# This is a scaffold; wire it to your workload stacks or composite modules.
+
+trigger: none
+pr: none
+
+variables:
+  AZ_SERVICE_CONNECTION: 'AzureSPN-Katta'
+  ENVIRONMENT_NAME: 'alz-dev'
+  MODEL_PATH: 'environments/dev/workload-models'
+  OUT_DIR: 'out/params'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: RenderModels
+    displayName: 'Render workload models'
+    jobs:
+      - job: Render
+        displayName: 'YAML -> tfvars.json'
+        steps:
+          - checkout: self
+            clean: true
+
+          - task: PowerShell@2
+            displayName: 'Render YAML models'
+            inputs:
+              pwsh: true
+              targetType: filePath
+              filePath: scripts/render-model.ps1
+              arguments: '-ModelPath "$(MODEL_PATH)" -OutDir "$(OUT_DIR)"'
+
+          - publish: '$(OUT_DIR)'
+            displayName: 'Publish rendered tfvars'
+            artifact: workload-params
+
+  # Example of consuming rendered files in a follow-up job
+  - stage: ApplyWorkloads
+    displayName: 'Apply workload stacks'
+    dependsOn: RenderModels
+    jobs:
+      - job: ExampleApp
+        displayName: 'Example app stack using rendered params'
+        steps:
+          - download: current
+            artifact: workload-params
+          # Replace workingDirectory with your workload stack root.
+          - template: templates/terraform-steps.yml
+            parameters:
+              workingDirectory: terraform/landing-zones/baselines/corp
+              varFile: '$(Pipeline.Workspace)/workload-params/web-api.auto.tfvars.json'
+              planName: 80-workload-webapi-dev
+              environment: $(ENVIRONMENT_NAME)
+              azServiceConnection: $(AZ_SERVICE_CONNECTION)
+              apply: false   # set true when your workload stack is ready

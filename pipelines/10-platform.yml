@@ -1,0 +1,27 @@
+# Deploy management group hierarchy (00-tenant stack)
+
+trigger: none
+pr: none
+
+variables:
+  AZ_SERVICE_CONNECTION: 'AzureSPN-Katta'
+  ENVIRONMENT_NAME: 'alz-dev'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Tenant
+    displayName: '00-tenant'
+    jobs:
+      - job: DeployTenant
+        displayName: 'Deploy MG hierarchy'
+        steps:
+          - template: templates/terraform-steps.yml
+            parameters:
+              workingDirectory: terraform/platform/00-tenant
+              varFile: environments/dev/platform.tfvars
+              planName: 00-tenant-dev
+              environment: $(ENVIRONMENT_NAME)
+              azServiceConnection: $(AZ_SERVICE_CONNECTION)
+              apply: true

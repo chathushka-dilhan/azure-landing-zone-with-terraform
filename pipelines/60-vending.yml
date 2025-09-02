@@ -1,0 +1,33 @@
+# Subscription vending (create or onboard subscription, move to MG, tag, and assign RBAC)
+
+trigger: none
+pr: none
+
+variables:
+  AZ_SERVICE_CONNECTION: 'AzureSPN-Katta'
+  ENVIRONMENT_NAME: 'alz-dev'
+  MG_TARGET_ID: 'katta-lz-corp'  # short name for readability
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Vending
+    displayName: 'Landing zone subscription vending'
+    jobs:
+      - job: VendingJob
+        displayName: 'Create or onboard subscription'
+        steps:
+          - template: templates/terraform-steps.yml
+            parameters:
+              workingDirectory: terraform/landing-zones/vending
+              # No tfvars needed; pass extra vars instead
+              extraVars:
+                management_group_id: $(MG_TARGET_ID)
+                create_subscription: false
+                subscription_id: '00000000-0000-0000-0000-000000000000'
+                # tags: '{"env":"dev","owner":"platform"}'  # use tfvars for complex maps if preferred
+              planName: 60-vending-dev
+              environment: $(ENVIRONMENT_NAME)
+              azServiceConnection: $(AZ_SERVICE_CONNECTION)
+              apply: true

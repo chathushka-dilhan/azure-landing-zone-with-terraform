@@ -1,0 +1,53 @@
+# Apply baseline resources inside a target subscription (corp or online)
+
+trigger: none
+pr: none
+
+variables:
+  AZ_SERVICE_CONNECTION: 'AzureSPN-Katta'
+  ENVIRONMENT_NAME: 'alz-dev'
+  TARGET_SUBSCRIPTION_ID: '00000000-0000-0000-0000-000000000000'
+  WORKSPACE_ID: '/subscriptions/<sub>/resourceGroups/rg-mgmt-dev/providers/Microsoft.OperationalInsights/workspaces/law-mgmt-dev'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: LZCorp
+    displayName: 'Baseline: corp'
+    jobs:
+      - job: LZCorpJob
+        displayName: 'Apply corp baseline'
+        steps:
+          - template: templates/terraform-steps.yml
+            parameters:
+              workingDirectory: terraform/landing-zones/baselines/corp
+              planName: 70-corp-baseline-dev
+              environment: $(ENVIRONMENT_NAME)
+              azServiceConnection: $(AZ_SERVICE_CONNECTION)
+              apply: true
+              extraVars:
+                subscription_id: $(TARGET_SUBSCRIPTION_ID)
+                location: 'southeastasia'
+                workspace_id: $(WORKSPACE_ID)
+                resource_group_name: 'rg-lz-corp-dev'
+  - stage: LZOnline
+    displayName: 'Baseline: online'
+    dependsOn: LZCorp
+    condition: succeeded()
+    jobs:
+      - job: LZOnlineJob
+        displayName: 'Apply online baseline'
+        steps:
+          - template: templates/terraform-steps.yml
+            parameters:
+              workingDirectory: terraform/landing-zones/baselines/online
+              planName: 70-online-baseline-dev
+              environment: $(ENVIRONMENT_NAME)
+              azServiceConnection: $(AZ_SERVICE_CONNECTION)
+              apply: true
+              extraVars:
+                subscription_id: $(TARGET_SUBSCRIPTION_ID)
+                location: 'southeastasia'
+                workspace_id: $(WORKSPACE_ID)
+                resource_group_name: 'rg-lz-online-dev'

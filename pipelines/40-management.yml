@@ -1,0 +1,27 @@
+# Deploy platform monitoring, action groups, DCR, and backup
+
+trigger: none
+pr: none
+
+variables:
+  AZ_SERVICE_CONNECTION: 'AzureSPN-Katta'
+  ENVIRONMENT_NAME: 'alz-dev'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Management
+    displayName: '40-management'
+    jobs:
+      - job: DeployManagement
+        displayName: 'Deploy management services'
+        steps:
+          - template: templates/terraform-steps.yml
+            parameters:
+              workingDirectory: terraform/platform/40-management
+              varFile: environments/dev/management.tfvars
+              planName: 40-management-dev
+              environment: $(ENVIRONMENT_NAME)
+              azServiceConnection: $(AZ_SERVICE_CONNECTION)
+              apply: true

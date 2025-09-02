@@ -1,0 +1,27 @@
+# Deploy hub connectivity (VNet hub or vWAN)
+
+trigger: none
+pr: none
+
+variables:
+  AZ_SERVICE_CONNECTION: 'AzureSPN-Katta'
+  ENVIRONMENT_NAME: 'alz-dev'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Connectivity
+    displayName: '30-connectivity'
+    jobs:
+      - job: DeployConnectivity
+        displayName: 'Deploy hub resources'
+        steps:
+          - template: templates/terraform-steps.yml
+            parameters:
+              workingDirectory: terraform/platform/30-connectivity
+              varFile: environments/dev/connectivity.tfvars
+              planName: 30-connectivity-dev
+              environment: $(ENVIRONMENT_NAME)
+              azServiceConnection: $(AZ_SERVICE_CONNECTION)
+              apply: true
