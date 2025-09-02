@@ -1,0 +1,24 @@
+{
+  "name": "ALZ-Allowed-Locations",
+  "properties": {
+    "displayName": "Allowed locations for resources",
+    "description": "Restrict locations for resource deployment.",
+    "metadata": { "category": "General" },
+    "mode": "All",
+    "parameters": {
+      "listOfAllowedLocations": {
+        "type": "Array",
+        "metadata": { "displayName": "Allowed locations" }
+      }
+    },
+    "policyRule": {
+      "if": {
+        "field": "location",
+        "notIn": "[parameters('listOfAllowedLocations')]"
+      },
+      "then": {
+        "effect": "Deny"
+      }
+    }
+  }
+}

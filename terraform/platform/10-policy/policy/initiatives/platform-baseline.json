@@ -1,0 +1,8 @@
+{
+  "name": "ALZ-Platform-Baseline",
+  "properties": {
+    "displayName": "ALZ Platform Baseline",
+    "description": "Core guardrails, including allowed locations and deny public IP.",
+    "metadata": { "category": "ALZ" }
+  }
+}

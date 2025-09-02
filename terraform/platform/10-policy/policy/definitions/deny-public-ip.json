@@ -1,0 +1,28 @@
+{
+  "name": "ALZ-Deny-Public-IP",
+  "properties": {
+    "displayName": "Deny public IP assignment on NICs and VMs",
+    "description": "Prevents public IP attachments at the NIC and VM level.",
+    "metadata": { "category": "Networking" },
+    "mode": "Indexed",
+    "parameters": {
+      "effect": {
+        "type": "String",
+        "metadata": { "displayName": "Effect" },
+        "allowedValues": ["Deny", "Audit"],
+        "defaultValue": "Deny"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "anyOf": [
+          { "field": "Microsoft.Network/networkInterfaces/ipconfigurations.publicIpAddress.id", "exists": "true" },
+          { "field": "Microsoft.Compute/virtualMachines/networkProfile.networkInterfaces[*].ipConfigurations.publicIpAddress.id", "exists": "true" }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]"
+      }
+    }
+  }
+}
