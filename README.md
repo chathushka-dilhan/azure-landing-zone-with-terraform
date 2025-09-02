@@ -1,5 +1,7 @@
 # Azure Landing Zone with Terraform
 
+![alt text](./assets/azure-landing-zone.jpg "banner")
+
 ## Overview
 This repository implements a **future-proofed Azure Landing Zone** following Microsoft’s [Cloud Adoption Framework (CAF)](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/landing-zone/).
 
