@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Workload Model",
+  "type": "object",
+  "required": ["name", "tier", "env", "location", "workload"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "tier": { "type": "string", "enum": ["corp", "online"] },
+    "env": { "type": "string" },
+    "location": { "type": "string" },
+    "connectivity": {
+      "type": "object",
+      "properties": {
+        "vnet": { "type": "string" },
+        "subnets": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "diagnostics": {
+      "type": "object",
+      "properties": {
+        "logAnalyticsWorkspaceId": { "type": "string" },
+        "enableActivityLogs": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "security": {
+      "type": "object",
+      "properties": {
+        "privateEndpoints": { "type": "boolean" },
+        "defenderPlans": { "type": "object", "additionalProperties": { "type": "boolean" } }
+      },
+      "additionalProperties": true
+    },
+    "rbac": {
+      "type": "object",
+      "properties": {
+        "owners": { "type": "array", "items": { "type": "string", "minLength": 36 } },
+        "contributors": { "type": "array", "items": { "type": "string", "minLength": 36 } }
+      },
+      "additionalProperties": false
+    },
+    "workload": {
+      "type": "object",
+      "required": ["compute"],
+      "properties": {
+        "compute": { "type": "string", "enum": ["appservice", "vm", "aks", "synapse", "function"] },
+        "sku": { "type": "string" },
+        "instances": { "type": "integer", "minimum": 1 },
+        "managedIdentity": { "type": "string", "enum": ["systemAssigned", "none"] }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

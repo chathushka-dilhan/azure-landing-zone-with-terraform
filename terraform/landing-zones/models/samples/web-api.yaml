@@ -1,0 +1,25 @@
+name: web-api
+tier: corp
+env: dev
+location: southeastasia
+connectivity:
+  vnet: spoke-01
+  subnets: [web, data]
+diagnostics:
+  logAnalyticsWorkspaceId: /subscriptions/<sub>/resourceGroups/rg-mgmt/providers/Microsoft.OperationalInsights/workspaces/law-mgmt
+  enableActivityLogs: true
+security:
+  privateEndpoints: true
+  defenderPlans:
+    storage: true
+    sql: true
+rbac:
+  owners:
+    - "00000000-0000-0000-0000-000000000001"
+  contributors:
+    - "00000000-0000-0000-0000-000000000002"
+workload:
+  compute: appservice
+  sku: P1v3
+  instances: 2
+  managedIdentity: systemAssigned
